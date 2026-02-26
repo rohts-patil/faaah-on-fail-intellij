@@ -27,7 +27,7 @@
         <!-- Settings UI under Settings → Tools → FAAAAH on Fail -->
         <applicationConfigurable
             instance="com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettingsConfigurable"
-            displayName="FAAAAH on Fail 🎺"
+            displayName="FAAAAH on Fail"
             parentId="tools"/>
     </extensions>
 </idea-plugin>
