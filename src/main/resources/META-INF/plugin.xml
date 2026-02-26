@@ -10,8 +10,16 @@
         <!-- JUnit / test framework failure listener -->
         <testStatusListener implementation="com.github.rohtspatil.faaahonfailintellij.listeners.FaaaahTestStatusListener"/>
 
-        <!-- Gradle / Maven external build failure listener -->
+        <!-- Gradle / Maven external build failure listener (ExternalSystem framework) -->
         <externalSystemTaskNotificationListener implementation="com.github.rohtspatil.faaahonfailintellij.listeners.FaaaahBuildListener"/>
+
+        <!--
+            Startup activity that subscribes FaaaahExecutionListener to the PROJECT-level message bus.
+            ExecutionManager.EXECUTION_TOPIC is @ProjectLevel - it must be subscribed on the
+            project bus (not app bus). A declarative <listeners> block uses the app bus and
+            would miss Maven/run process events.
+        -->
+        <postStartupActivity implementation="com.github.rohtspatil.faaahonfailintellij.startup.FaaaahProjectActivity"/>
 
         <!-- Persistent settings service -->
         <applicationService serviceImplementation="com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettings"/>
