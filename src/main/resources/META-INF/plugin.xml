@@ -4,6 +4,17 @@
     <name>FAAAAH on Fail</name>
     <vendor>rohts-patil</vendor>
 
+    <description><![CDATA[
+        <p>Plays a loud <b>FAAAAH</b> sound whenever something goes wrong in your IDE — so you can't miss a failure even if you look away.</p>
+        <p>Detects failures from:</p>
+        <ul>
+            <li>✅ JUnit / test framework runs</li>
+            <li>🔨 Gradle / Maven / external system builds</li>
+            <li>▶️ Run configurations (application, scripts, processes)</li>
+        </ul>
+        <p>Configurable from <b>Settings → Tools → FAAAAH on Fail</b>: enable/disable sound for each failure type independently.</p>
+    ]]></description>
+
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">

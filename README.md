@@ -1,4 +1,4 @@
-# faaah-on-fail-intellij
+# FAAAAH on Fail
 
 ![Build](https://github.com/rohts-patil/faaah-on-fail-intellij/workflows/Build/badge.svg)
 [![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
@@ -18,11 +18,14 @@
 - [ ] Configure the [CODECOV_TOKEN](https://docs.codecov.com/docs/quick-start) secret for automated test coverage reports on PRs
 
 <!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+Plays a loud **FAAAAH** sound whenever something goes wrong in your IDE — so you can't miss a failure even if you look away.
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
+Detects failures from:
+- ✅ JUnit / test framework runs
+- 🔨 Gradle / Maven / external system builds
+- ▶️ Run configurations (application, scripts, processes)
 
-To keep everything working, do not remove `<!-- ... -->` sections. 
+Configurable from **Settings → Tools → FAAAAH on Fail**: enable/disable sound for each failure type independently.
 <!-- Plugin description end -->
 
 ## Installation
