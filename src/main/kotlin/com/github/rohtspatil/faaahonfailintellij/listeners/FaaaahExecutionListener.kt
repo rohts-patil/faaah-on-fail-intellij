@@ -8,14 +8,11 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 
 /**
- * Listens for any IntelliJ run/build process that exits with a non-zero code.
- * This covers:
- *  - Maven goals run from the Maven tool window (mvn test, mvn clean install, etc.)
- *  - Gradle tasks run from the Gradle tool window
- *  - Any other run configuration that fails at the process level
+ * Listens for IntelliJ processes that end with a non-zero exit code.
+ * Build-like executions are handled by FaaaahBuildListener to avoid duplicate playback,
+ * while non-build run/process failures are gated by the onTerminalError setting.
  *
  * JUnit test failures handled separately by FaaaahTestStatusListener.
- * Registered as a project-level listener in plugin.xml, so no startup activity needed.
  */
 class FaaaahExecutionListener : ExecutionListener {
 
@@ -25,16 +22,19 @@ class FaaaahExecutionListener : ExecutionListener {
         handler: ProcessHandler,
         exitCode: Int
     ) {
-        if (exitCode == 0) return
         val settings = FaaaahSettings.getInstance()
-        if (!settings.state.enabled || !settings.state.onBuildFailure) return
-        SoundPlayer.play(resolveSound(settings.state.soundName))
-    }
-
-    private fun resolveSound(name: String): FaaaahSound = when (name) {
-        "fatality" -> FaaaahSound.FATALITY
-        "joker" -> FaaaahSound.JOKER
-        "random" -> FaaaahSound.random()
-        else -> FaaaahSound.FAAAAH
+        val isBuildLike = FaaaahTriggerPolicy.isBuildLikeExecution(
+            executorId = executorId,
+            runProfileName = env.runProfile.name,
+            runProfileClassName = env.runProfile.javaClass.name
+        )
+        val shouldPlay = FaaaahTriggerPolicy.shouldPlayForExecution(
+            exitCode = exitCode,
+            enabled = settings.state.enabled,
+            onTerminalError = settings.state.onTerminalError,
+            isBuildLike = isBuildLike
+        )
+        if (!shouldPlay) return
+        SoundPlayer.play(FaaaahSound.fromName(settings.state.soundName))
     }
 }

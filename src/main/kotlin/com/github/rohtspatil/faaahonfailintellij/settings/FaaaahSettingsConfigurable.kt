@@ -25,7 +25,7 @@ class FaaaahSettingsConfigurable : Configurable {
         enabledCheckBox = JCheckBox("Enable FAAAAH on Fail", settings.enabled)
         onTestFailureCheckBox = JCheckBox("Play on JUnit/test failure", settings.onTestFailure)
         onBuildFailureCheckBox = JCheckBox("Play on build failure (Maven/Gradle)", settings.onBuildFailure)
-        onTerminalErrorCheckBox = JCheckBox("Play on terminal command error (exit code ≠ 0)", settings.onTerminalError)
+        onTerminalErrorCheckBox = JCheckBox("Play on run/process failure (exit code != 0)", settings.onTerminalError)
         soundComboBox = JComboBox(arrayOf("faaaah", "fatality", "joker", "random")).also {
             it.selectedItem = settings.soundName
         }
@@ -61,12 +61,7 @@ class FaaaahSettingsConfigurable : Configurable {
         val testButton = JButton("🎺 Test Sound").apply {
             addActionListener {
                 val selected = soundComboBox!!.selectedItem as String
-                val sound = when (selected) {
-                    "fatality" -> FaaaahSound.FATALITY
-                    "joker" -> FaaaahSound.JOKER
-                    "random" -> FaaaahSound.random()
-                    else -> FaaaahSound.FAAAAH
-                }
+                val sound = FaaaahSound.fromName(selected)
                 SoundPlayer.play(sound)
             }
         }

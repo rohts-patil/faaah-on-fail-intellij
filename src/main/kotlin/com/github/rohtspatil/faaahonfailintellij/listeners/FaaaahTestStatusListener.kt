@@ -12,14 +12,7 @@ class FaaaahTestStatusListener : TestStatusListener() {
         val settings = FaaaahSettings.getInstance()
         if (!settings.state.enabled || !settings.state.onTestFailure) return
         if (root != null && !root.isPassed) {
-            SoundPlayer.play(resolveSound(settings.state.soundName))
+            SoundPlayer.play(FaaaahSound.fromName(settings.state.soundName))
         }
-    }
-
-    private fun resolveSound(name: String): FaaaahSound = when (name) {
-        "fatality" -> FaaaahSound.FATALITY
-        "joker" -> FaaaahSound.JOKER
-        "random" -> FaaaahSound.random()
-        else -> FaaaahSound.FAAAAH
     }
 }

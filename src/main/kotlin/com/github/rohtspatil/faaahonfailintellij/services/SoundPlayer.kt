@@ -11,6 +11,13 @@ enum class FaaaahSound(val resource: String) {
 
     companion object {
         fun random(): FaaaahSound = entries.random()
+
+        fun fromName(name: String): FaaaahSound = when (name) {
+            "fatality" -> FATALITY
+            "joker" -> JOKER
+            "random" -> FaaaahSound.random()
+            else -> FAAAAH
+        }
     }
 }
 
@@ -26,14 +33,21 @@ object SoundPlayer {
                         log.warn("Could not find sound resource: ${sound.resource}")
                         return@executeOnPooledThread
                     }
-                val audioStream = AudioSystem.getAudioInputStream(stream.buffered())
-                val clip = AudioSystem.getClip()
-                clip.open(audioStream)
-                clip.start()
-                // Wait for clip to finish before closing
-                Thread.sleep(clip.microsecondLength / 1000 + 200)
-                clip.close()
-                audioStream.close()
+                stream.use { rawStream ->
+                    AudioSystem.getAudioInputStream(rawStream.buffered()).use { audioStream ->
+                        val clip = AudioSystem.getClip()
+                        try {
+                            clip.open(audioStream)
+                            clip.start()
+                            // Keep resources open until playback is done.
+                            Thread.sleep(clip.microsecondLength / 1000 + 200)
+                        } finally {
+                            clip.close()
+                        }
+                    }
+                }
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
             } catch (e: Exception) {
                 log.warn("Failed to play FAAAAH sound: ${e.message}")
             }

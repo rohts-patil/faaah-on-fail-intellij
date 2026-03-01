@@ -15,13 +15,6 @@ class FaaaahBuildListener : ExternalSystemTaskNotificationListener {
     override fun onFailure(id: ExternalSystemTaskId, e: Exception) {
         val settings = FaaaahSettings.getInstance()
         if (!settings.state.enabled || !settings.state.onBuildFailure) return
-        SoundPlayer.play(resolveSound(settings.state.soundName))
-    }
-
-    private fun resolveSound(name: String): FaaaahSound = when (name) {
-        "fatality" -> FaaaahSound.FATALITY
-        "joker" -> FaaaahSound.JOKER
-        "random" -> FaaaahSound.random()
-        else -> FaaaahSound.FAAAAH
+        SoundPlayer.play(FaaaahSound.fromName(settings.state.soundName))
     }
 }
