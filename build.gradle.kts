@@ -34,6 +34,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
 
+    // MP3 support via Java AudioSystem SPI — bundles JLayer + tritonus-share
+    implementation("com.googlecode.soundlibs:mp3spi:1.9.5.4")
+
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))

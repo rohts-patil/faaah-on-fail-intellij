@@ -41,7 +41,7 @@ class FaaaahSettingsConfigurable : Configurable {
         // --- Custom sound file row ---
         customSoundPathField = JTextField(settings.customSoundPath, 30).apply {
             isEditable = false
-            toolTipText = "Absolute path to your sound file (.wav or .mp3)"
+            toolTipText = "Absolute path to a .wav or .mp3 file"
         }
         browseButton = JButton("Browse…").apply {
             addActionListener {
@@ -119,7 +119,16 @@ class FaaaahSettingsConfigurable : Configurable {
             addActionListener {
                 val selected = soundComboBox!!.selectedItem as String
                 if (selected == "custom") {
-                    SoundPlayer.playFromFile(customSoundPathField?.text?.trim() ?: "")
+                    try {
+                        SoundPlayer.playFromFile(customSoundPathField?.text?.trim() ?: "")
+                    } catch (e: IllegalArgumentException) {
+                        JOptionPane.showMessageDialog(
+                            panel,
+                            e.message,
+                            "FAAAAH — Cannot Play Sound",
+                            JOptionPane.ERROR_MESSAGE
+                        )
+                    }
                 } else {
                     SoundPlayer.play(FaaaahSound.fromName(selected))
                 }
