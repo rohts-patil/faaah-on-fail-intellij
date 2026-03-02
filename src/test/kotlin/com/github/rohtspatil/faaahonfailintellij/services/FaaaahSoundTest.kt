@@ -13,6 +13,11 @@ class FaaaahSoundTest {
     }
 
     @Test
+    fun `fromName returns CUSTOM for custom`() {
+        assertEquals(FaaaahSound.CUSTOM, FaaaahSound.fromName("custom"))
+    }
+
+    @Test
     fun `fromName falls back to default for unknown values`() {
         assertEquals(FaaaahSound.FAAAAH, FaaaahSound.fromName("unknown-sound"))
     }

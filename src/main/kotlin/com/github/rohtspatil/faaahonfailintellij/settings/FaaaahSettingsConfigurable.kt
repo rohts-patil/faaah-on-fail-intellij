@@ -7,6 +7,7 @@ import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
 import javax.swing.*
+import javax.swing.filechooser.FileNameExtensionFilter
 
 class FaaaahSettingsConfigurable : Configurable {
 
@@ -15,6 +16,12 @@ class FaaaahSettingsConfigurable : Configurable {
     private var onBuildFailureCheckBox: JCheckBox? = null
     private var onTerminalErrorCheckBox: JCheckBox? = null
     private var soundComboBox: JComboBox<String>? = null
+
+    // Custom sound row widgets
+    private var customSoundPathField: JTextField? = null
+    private var browseButton: JButton? = null
+    private var customSoundRow: JPanel? = null
+
     private var panel: JPanel? = null
 
     override fun getDisplayName(): String = "FAAAAH on Fail 🎺"
@@ -26,10 +33,54 @@ class FaaaahSettingsConfigurable : Configurable {
         onTestFailureCheckBox = JCheckBox("Play on JUnit/test failure", settings.onTestFailure)
         onBuildFailureCheckBox = JCheckBox("Play on build failure (Maven/Gradle)", settings.onBuildFailure)
         onTerminalErrorCheckBox = JCheckBox("Play on run/process failure (exit code != 0)", settings.onTerminalError)
-        soundComboBox = JComboBox(arrayOf("faaaah", "fatality", "joker", "random")).also {
+
+        soundComboBox = JComboBox(arrayOf("faaaah", "fatality", "joker", "random", "custom")).also {
             it.selectedItem = settings.soundName
         }
 
+        // --- Custom sound file row ---
+        customSoundPathField = JTextField(settings.customSoundPath, 30).apply {
+            isEditable = false
+            toolTipText = "Absolute path to your sound file (.wav or .mp3)"
+        }
+        browseButton = JButton("Browse…").apply {
+            addActionListener {
+                val chooser = JFileChooser().apply {
+                    dialogTitle = "Select a sound file"
+                    fileFilter = FileNameExtensionFilter("Sound files (*.wav, *.mp3)", "wav", "mp3")
+                    isAcceptAllFileFilterUsed = false
+                    // Pre-populate with existing path if valid
+                    val current = customSoundPathField?.text?.trim() ?: ""
+                    if (current.isNotBlank()) {
+                        val f = java.io.File(current)
+                        if (f.exists()) currentDirectory = f.parentFile
+                    }
+                }
+                if (chooser.showOpenDialog(panel) == JFileChooser.APPROVE_OPTION) {
+                    customSoundPathField?.text = chooser.selectedFile.absolutePath
+                }
+            }
+        }
+
+        customSoundRow = JPanel(GridBagLayout()).apply {
+            val gc2 = GridBagConstraints().apply {
+                anchor = GridBagConstraints.WEST
+                insets = Insets(0, 0, 0, 4)
+                gridx = 0; gridy = 0
+                fill = GridBagConstraints.HORIZONTAL
+                weightx = 1.0
+            }
+            add(customSoundPathField!!, gc2)
+            gc2.gridx = 1; gc2.fill = GridBagConstraints.NONE; gc2.weightx = 0.0
+            add(browseButton!!, gc2)
+        }
+        updateCustomRowVisibility(settings.soundName)
+
+        soundComboBox!!.addActionListener {
+            updateCustomRowVisibility(soundComboBox!!.selectedItem as String)
+        }
+
+        // --- Main panel layout ---
         val p = JPanel(GridBagLayout())
         val gc = GridBagConstraints().apply {
             anchor = GridBagConstraints.WEST
@@ -57,12 +108,21 @@ class FaaaahSettingsConfigurable : Configurable {
         gc.gridx = 1
         p.add(soundComboBox!!, gc)
 
+        // Custom file row (hidden unless "custom" is selected)
+        gc.gridx = 0; gc.gridy++; gc.gridwidth = 2; gc.insets = Insets(2, 16, 2, 4)
+        gc.fill = GridBagConstraints.HORIZONTAL
+        p.add(customSoundRow!!, gc)
+        gc.fill = GridBagConstraints.NONE
+
         gc.gridx = 0; gc.gridy++; gc.gridwidth = 2; gc.insets = Insets(4, 4, 4, 4)
         val testButton = JButton("🎺 Test Sound").apply {
             addActionListener {
                 val selected = soundComboBox!!.selectedItem as String
-                val sound = FaaaahSound.fromName(selected)
-                SoundPlayer.play(sound)
+                if (selected == "custom") {
+                    SoundPlayer.playFromFile(customSoundPathField?.text?.trim() ?: "")
+                } else {
+                    SoundPlayer.play(FaaaahSound.fromName(selected))
+                }
             }
         }
         p.add(testButton, gc)
@@ -71,13 +131,21 @@ class FaaaahSettingsConfigurable : Configurable {
         return p
     }
 
+    private fun updateCustomRowVisibility(soundName: String) {
+        val visible = soundName == "custom"
+        customSoundRow?.isVisible = visible
+        customSoundPathField?.isVisible = visible
+        browseButton?.isVisible = visible
+    }
+
     override fun isModified(): Boolean {
         val state = FaaaahSettings.getInstance().state
         return enabledCheckBox?.isSelected != state.enabled ||
                 onTestFailureCheckBox?.isSelected != state.onTestFailure ||
                 onBuildFailureCheckBox?.isSelected != state.onBuildFailure ||
                 onTerminalErrorCheckBox?.isSelected != state.onTerminalError ||
-                soundComboBox?.selectedItem != state.soundName
+                soundComboBox?.selectedItem != state.soundName ||
+                customSoundPathField?.text?.trim() != state.customSoundPath
     }
 
     override fun apply() {
@@ -87,6 +155,7 @@ class FaaaahSettingsConfigurable : Configurable {
         settings.state.onBuildFailure = onBuildFailureCheckBox?.isSelected ?: true
         settings.state.onTerminalError = onTerminalErrorCheckBox?.isSelected ?: true
         settings.state.soundName = soundComboBox?.selectedItem as? String ?: "faaaah"
+        settings.state.customSoundPath = customSoundPathField?.text?.trim() ?: ""
     }
 
     override fun reset() {
@@ -96,6 +165,8 @@ class FaaaahSettingsConfigurable : Configurable {
         onBuildFailureCheckBox?.isSelected = state.onBuildFailure
         onTerminalErrorCheckBox?.isSelected = state.onTerminalError
         soundComboBox?.selectedItem = state.soundName
+        customSoundPathField?.text = state.customSoundPath
+        updateCustomRowVisibility(state.soundName)
     }
 
     override fun disposeUIResources() {
@@ -105,5 +176,8 @@ class FaaaahSettingsConfigurable : Configurable {
         onBuildFailureCheckBox = null
         onTerminalErrorCheckBox = null
         soundComboBox = null
+        customSoundPathField = null
+        browseButton = null
+        customSoundRow = null
     }
 }

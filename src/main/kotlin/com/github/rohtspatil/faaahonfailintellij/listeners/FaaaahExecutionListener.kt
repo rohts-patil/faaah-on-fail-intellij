@@ -1,6 +1,5 @@
 package com.github.rohtspatil.faaahonfailintellij.listeners
 
-import com.github.rohtspatil.faaahonfailintellij.services.FaaaahSound
 import com.github.rohtspatil.faaahonfailintellij.services.SoundPlayer
 import com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettings
 import com.intellij.execution.ExecutionListener
@@ -35,6 +34,6 @@ class FaaaahExecutionListener : ExecutionListener {
             isBuildLike = isBuildLike
         )
         if (!shouldPlay) return
-        SoundPlayer.play(FaaaahSound.fromName(settings.state.soundName))
+        SoundPlayer.playBySettings(settings.state)
     }
 }

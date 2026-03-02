@@ -16,7 +16,8 @@ class FaaaahSettings : PersistentStateComponent<FaaaahSettings.State> {
 
     data class State(
         var enabled: Boolean = true,
-        var soundName: String = "faaaah",    // "faaaah", "fatality", "joker", "random"
+        var soundName: String = "faaaah",    // "faaaah", "fatality", "joker", "random", "custom"
+        var customSoundPath: String = "",    // absolute path to user-supplied file when soundName == "custom"
         var onTestFailure: Boolean = true,
         var onBuildFailure: Boolean = true,
         var onTerminalError: Boolean = true
