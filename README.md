@@ -8,12 +8,21 @@
 
 ---
 
+<!-- Plugin description -->
 You're deep in the zone. Headphones on. Coffee in hand. You kick off a build and go refill your cup.  
 You come back. The build failed 37 seconds ago. You've been sitting in silence, oblivious.
 
 **FAAAAH on Fail fixes that.**
 
 It plays a loud, unmissable sound every time your IDE encounters a failure — so you *always* know the moment something breaks, even when you're not watching the screen.
+
+Detects failures from:
+- 🧪 JUnit / test framework runs
+- 🔨 Gradle / Maven / external system builds
+- ▶️ Run configurations (application, scripts, processes)
+
+Pick from 4 built-in sounds or **choose your own file** — configurable from **Settings → Tools → FAAAAH on Fail 🎺**.
+<!-- Plugin description end -->
 
 ---
 
