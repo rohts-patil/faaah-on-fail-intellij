@@ -3,8 +3,8 @@
 > *Because silent failures are cowardly failures.*
 
 ![Build](https://github.com/rohts-patil/faaah-on-fail-intellij/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
+[![Version](https://img.shields.io/jetbrains/plugin/v/30372-faaaah-on-fail.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/30372-faaaah-on-fail.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
 
 ---
 
