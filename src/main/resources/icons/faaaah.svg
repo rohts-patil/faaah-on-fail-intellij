@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+    <!-- Musical note shape: stem + head -->
+    <rect x="8" y="2" width="2" height="8" rx="1" fill="#6B9FE4"/>
+    <rect x="8" y="2" width="5" height="2" rx="1" fill="#6B9FE4"/>
+    <ellipse cx="6.5" cy="10.5" rx="3" ry="2" fill="#6B9FE4"/>
+</svg>

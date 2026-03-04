@@ -45,6 +45,12 @@
                 instance="com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettingsConfigurable"
                 displayName="FAAAAH on Fail"
                 parentId="tools"/>
+
+        <!-- Sidebar tool window (right panel, like Maven / Gradle) -->
+        <toolWindow id="FAAAAH on Fail"
+                    anchor="right"
+                    icon="/icons/faaaah.svg"
+                    factoryClass="com.github.rohtspatil.faaahonfailintellij.toolWindow.FaaaahToolWindowFactory"/>
     </extensions>
 
     <actions>
