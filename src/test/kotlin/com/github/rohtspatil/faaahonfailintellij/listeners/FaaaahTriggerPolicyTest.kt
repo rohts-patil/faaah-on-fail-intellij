@@ -44,6 +44,7 @@ class FaaaahTriggerPolicyTest {
         val shouldPlay = FaaaahTriggerPolicy.shouldPlayForExecution(
             exitCode = 0,
             enabled = true,
+            onBuildFailure = true,
             onTerminalError = true,
             isBuildLike = false
         )
@@ -52,10 +53,24 @@ class FaaaahTriggerPolicyTest {
     }
 
     @Test
-    fun `execution sound is suppressed for build-like failures to avoid duplicates`() {
+    fun `execution sound plays for build-like failure when onBuildFailure is enabled`() {
         val shouldPlay = FaaaahTriggerPolicy.shouldPlayForExecution(
             exitCode = 1,
             enabled = true,
+            onBuildFailure = true,
+            onTerminalError = false,
+            isBuildLike = true
+        )
+
+        assertTrue(shouldPlay)
+    }
+
+    @Test
+    fun `execution sound is suppressed for build-like failure when onBuildFailure is disabled`() {
+        val shouldPlay = FaaaahTriggerPolicy.shouldPlayForExecution(
+            exitCode = 1,
+            enabled = true,
+            onBuildFailure = false,
             onTerminalError = true,
             isBuildLike = true
         )
@@ -68,12 +83,14 @@ class FaaaahTriggerPolicyTest {
         val disabled = FaaaahTriggerPolicy.shouldPlayForExecution(
             exitCode = 1,
             enabled = true,
+            onBuildFailure = false,
             onTerminalError = false,
             isBuildLike = false
         )
         val enabled = FaaaahTriggerPolicy.shouldPlayForExecution(
             exitCode = 1,
             enabled = true,
+            onBuildFailure = false,
             onTerminalError = true,
             isBuildLike = false
         )
