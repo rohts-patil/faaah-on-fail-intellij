@@ -115,26 +115,33 @@ class FaaaahSettingsConfigurable : Configurable {
         gc.fill = GridBagConstraints.NONE
 
         gc.gridx = 0; gc.gridy++; gc.gridwidth = 2; gc.insets = Insets(4, 4, 4, 4)
-        val testButton = JButton("🎺 Test Sound").apply {
-            addActionListener {
-                val selected = soundComboBox!!.selectedItem as String
-                if (selected == "custom") {
-                    try {
-                        SoundPlayer.playFromFile(customSoundPathField?.text?.trim() ?: "")
-                    } catch (e: IllegalArgumentException) {
-                        JOptionPane.showMessageDialog(
-                            panel,
-                            e.message,
-                            "FAAAAH — Cannot Play Sound",
-                            JOptionPane.ERROR_MESSAGE
-                        )
+        val buttonRow = JPanel().apply {
+            val testButton = JButton("🎺 Test Sound").apply {
+                addActionListener {
+                    val selected = soundComboBox!!.selectedItem as String
+                    if (selected == "custom") {
+                        try {
+                            SoundPlayer.playFromFile(customSoundPathField?.text?.trim() ?: "")
+                        } catch (e: IllegalArgumentException) {
+                            JOptionPane.showMessageDialog(
+                                panel,
+                                e.message,
+                                "FAAAAH — Cannot Play Sound",
+                                JOptionPane.ERROR_MESSAGE
+                            )
+                        }
+                    } else {
+                        SoundPlayer.play(FaaaahSound.fromName(selected))
                     }
-                } else {
-                    SoundPlayer.play(FaaaahSound.fromName(selected))
                 }
             }
+            val stopButton = JButton("🔇 Stop Sound").apply {
+                addActionListener { SoundPlayer.stop() }
+            }
+            add(testButton)
+            add(stopButton)
         }
-        p.add(testButton, gc)
+        p.add(buttonRow, gc)
 
         panel = p
         return p
