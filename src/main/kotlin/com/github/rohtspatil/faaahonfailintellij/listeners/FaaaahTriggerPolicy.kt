@@ -28,18 +28,26 @@ object FaaaahTriggerPolicy {
                 profileName.contains("test")
     }
 
+    /**
+     * Whether to play the failure sound for a process that just terminated.
+     *
+     * Build-like executions (Maven, Gradle run configs, etc.) use the [onBuildFailure] setting.
+     * Note: Gradle tasks run from the Gradle tool window go through ExternalSystem and are handled
+     * by FaaaahBuildListener directly — they typically don't reach ExecutionListener at all.
+     * Maven goals from the Maven tool window DO go through ExecutionListener (Maven is NOT part
+     * of the ExternalSystem framework), so we must handle them here.
+     *
+     * Test runners are routed through FaaaahTestStatusListener — they are treated as build-like
+     * here so that they are NOT double-played if they also fire a process termination event.
+     */
     fun shouldPlayForExecution(
         exitCode: Int,
         enabled: Boolean,
+        onBuildFailure: Boolean,
         onTerminalError: Boolean,
         isBuildLike: Boolean
     ): Boolean {
         if (exitCode == 0 || !enabled) return false
-
-        return if (isBuildLike) {
-            false
-        } else {
-            onTerminalError
-        }
+        return if (isBuildLike) onBuildFailure else onTerminalError
     }
 }

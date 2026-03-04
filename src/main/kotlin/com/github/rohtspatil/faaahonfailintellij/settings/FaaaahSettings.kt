@@ -31,6 +31,13 @@ class FaaaahSettings : PersistentStateComponent<FaaaahSettings.State> {
         XmlSerializerUtil.copyBean(state, myState)
     }
 
+    /** Broadcast the current state to all [FaaaahSettingsListener] subscribers. */
+    fun notifyChanged() {
+        ApplicationManager.getApplication().messageBus
+            .syncPublisher(FaaaahSettingsListener.TOPIC)
+            .settingsChanged(myState)
+    }
+
     companion object {
         fun getInstance(): FaaaahSettings =
             ApplicationManager.getApplication().getService(FaaaahSettings::class.java)

@@ -2,7 +2,9 @@ package com.github.rohtspatil.faaahonfailintellij.settings
 
 import com.github.rohtspatil.faaahonfailintellij.services.FaaaahSound
 import com.github.rohtspatil.faaahonfailintellij.services.SoundPlayer
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.Configurable
+import com.intellij.util.messages.MessageBusConnection
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
@@ -23,10 +25,15 @@ class FaaaahSettingsConfigurable : Configurable {
     private var customSoundRow: JPanel? = null
 
     private var panel: JPanel? = null
+    private var messageBusConnection: MessageBusConnection? = null
 
     override fun getDisplayName(): String = "FAAAAH on Fail 🎺"
 
     override fun createComponent(): JComponent {
+        // Subscribe so the panel refreshes if the tool window changes settings while this dialog is open.
+        messageBusConnection = ApplicationManager.getApplication().messageBus.connect()
+        messageBusConnection!!.subscribe(FaaaahSettingsListener.TOPIC, FaaaahSettingsListener { _ -> reset() })
+
         val settings = FaaaahSettings.getInstance().state
 
         enabledCheckBox = JCheckBox("Enable FAAAAH on Fail", settings.enabled)
@@ -172,6 +179,8 @@ class FaaaahSettingsConfigurable : Configurable {
         settings.state.onTerminalError = onTerminalErrorCheckBox?.isSelected ?: true
         settings.state.soundName = soundComboBox?.selectedItem as? String ?: "faaaah"
         settings.state.customSoundPath = customSoundPathField?.text?.trim() ?: ""
+        // Notify other panels (e.g. tool window) that settings have changed.
+        settings.notifyChanged()
     }
 
     override fun reset() {
@@ -186,6 +195,8 @@ class FaaaahSettingsConfigurable : Configurable {
     }
 
     override fun disposeUIResources() {
+        messageBusConnection?.disconnect()
+        messageBusConnection = null
         panel = null
         enabledCheckBox = null
         onTestFailureCheckBox = null

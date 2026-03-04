@@ -30,6 +30,7 @@ class FaaaahExecutionListener : ExecutionListener {
         val shouldPlay = FaaaahTriggerPolicy.shouldPlayForExecution(
             exitCode = exitCode,
             enabled = settings.state.enabled,
+            onBuildFailure = settings.state.onBuildFailure,
             onTerminalError = settings.state.onTerminalError,
             isBuildLike = isBuildLike
         )
