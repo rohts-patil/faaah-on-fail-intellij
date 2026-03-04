@@ -25,7 +25,7 @@ class FaaaahToolWindowFactory : ToolWindowFactory {
             toolWindow.contentManager.addContent(content)
         } catch (e: Exception) {
             val fallback = JBPanel<JBPanel<*>>().apply {
-                add(JBLabel("⚠️ Could not load FAAAAH panel: ${e.message}"))
+                add(JBLabel("⚠️ Could not load panel: ${e.message}"))
             }
             toolWindow.contentManager.addContent(
                 ContentFactory.getInstance().createContent(fallback, "", false)
@@ -33,145 +33,109 @@ class FaaaahToolWindowFactory : ToolWindowFactory {
         }
     }
 
-    /** Immediately persist a partial settings update via the canonical loadState path. */
-    private fun save(block: FaaaahSettings.State.() -> Unit) {
-        val settings = FaaaahSettings.getInstance()
-        val updated = settings.state.copy().also(block)
-        settings.loadState(updated)
-    }
-
     private fun buildPanel(): JBPanel<*> {
-        val settings = FaaaahSettings.getInstance()
-        val state = settings.state
+        val initialState = FaaaahSettings.getInstance().state
 
-        val panel = JBPanel<JBPanel<*>>(GridBagLayout())
-        val gc = GridBagConstraints().apply {
-            anchor = GridBagConstraints.NORTHWEST
-            fill = GridBagConstraints.HORIZONTAL
-            gridx = 0; gridy = 0; weightx = 1.0
-            insets = Insets(10, 10, 4, 10)
+        // ── Widgets ────────────────────────────────────────────────────────
+        val enabledBox = JCheckBox("Enable FAAAAH on Fail", initialState.enabled)
+        val testBox = JCheckBox("🧪 JUnit / test failure", initialState.onTestFailure)
+        val buildBox = JCheckBox("🔨 Build failure (Gradle/Maven)", initialState.onBuildFailure)
+        val runBox = JCheckBox("▶️  Run / process failure", initialState.onTerminalError)
+        val soundCombo = JComboBox(arrayOf("faaaah", "fatality", "joker", "random", "custom"))
+        soundCombo.selectedItem = initialState.soundName
+        val customPath = JTextField(initialState.customSoundPath, 20).apply { isEditable = false }
+        val browseBtn = JButton("Browse…")
+
+        // ── Save helper: identical to FaaaahSettingsConfigurable.apply() ──
+        fun applySettings() {
+            val s = FaaaahSettings.getInstance().state
+            s.enabled = enabledBox.isSelected
+            s.onTestFailure = testBox.isSelected
+            s.onBuildFailure = buildBox.isSelected
+            s.onTerminalError = runBox.isSelected
+            s.soundName = soundCombo.selectedItem as String
+            s.customSoundPath = customPath.text.trim()
         }
 
-        // ── Title ──────────────────────────────────────────────────────────
-        panel.add(JBLabel("🎺 FAAAAH on Fail").apply {
-            font = font.deriveFont(Font.BOLD, 14f)
-        }, gc)
+        enabledBox.addActionListener { applySettings() }
+        testBox.addActionListener { applySettings() }
+        buildBox.addActionListener { applySettings() }
+        runBox.addActionListener { applySettings() }
+        soundCombo.addActionListener { applySettings() }
 
-        // ── Enable ─────────────────────────────────────────────────────────
-        gc.gridy++; gc.insets = Insets(6, 10, 2, 10)
-        val enabledBox = JCheckBox("Enable FAAAAH on Fail", state.enabled)
-        enabledBox.addActionListener { save { enabled = enabledBox.isSelected } }
-        panel.add(enabledBox, gc)
-
-        // ── Separator ──────────────────────────────────────────────────────
-        gc.gridy++; gc.insets = Insets(6, 10, 2, 10)
-        panel.add(JSeparator(), gc)
-
-        // ── Triggers ───────────────────────────────────────────────────────
-        gc.gridy++; gc.insets = Insets(4, 10, 2, 10)
-        panel.add(JBLabel("Triggers:").apply { font = font.deriveFont(Font.BOLD) }, gc)
-
-        gc.insets = Insets(2, 18, 2, 10)
-
-        val testBox = JCheckBox("🧪 JUnit / test failure", state.onTestFailure)
-        testBox.addActionListener { save { onTestFailure = testBox.isSelected } }
-        gc.gridy++; panel.add(testBox, gc)
-
-        val buildBox = JCheckBox("🔨 Build failure (Gradle/Maven)", state.onBuildFailure)
-        buildBox.addActionListener { save { onBuildFailure = buildBox.isSelected } }
-        gc.gridy++; panel.add(buildBox, gc)
-
-        val runBox = JCheckBox("▶️  Run / process failure", state.onTerminalError)
-        runBox.addActionListener { save { onTerminalError = runBox.isSelected } }
-        gc.gridy++; panel.add(runBox, gc)
-
-        // ── Separator ──────────────────────────────────────────────────────
-        gc.gridy++; gc.insets = Insets(6, 10, 2, 10)
-        panel.add(JSeparator(), gc)
-
-        // ── Sound selector ─────────────────────────────────────────────────
-        gc.gridy++; gc.insets = Insets(4, 10, 2, 10)
-        panel.add(JBLabel("Sound:").apply { font = font.deriveFont(Font.BOLD) }, gc)
-
-        gc.gridy++; gc.insets = Insets(2, 10, 2, 10)
-        val soundCombo = JComboBox(arrayOf("faaaah", "fatality", "joker", "random", "custom"))
-        soundCombo.selectedItem = state.soundName
-        panel.add(soundCombo, gc)
-
-        // ── Custom sound row ───────────────────────────────────────────────
-        val customPathField = JTextField(state.customSoundPath, 20)
-        customPathField.isEditable = false
-
-        val browseBtn = JButton("Browse…")
+        // ── Browse ─────────────────────────────────────────────────────────
         browseBtn.addActionListener {
             val chooser = JFileChooser().apply {
                 dialogTitle = "Select a sound file"
                 fileFilter = FileNameExtensionFilter("Sound files (*.wav, *.mp3)", "wav", "mp3")
                 isAcceptAllFileFilterUsed = false
-                val cur = customPathField.text.trim()
+                val cur = customPath.text.trim()
                 if (cur.isNotBlank()) {
-                    val f = java.io.File(cur)
-                    if (f.exists()) currentDirectory = f.parentFile
+                    val f = java.io.File(cur); if (f.exists()) currentDirectory = f.parentFile
                 }
             }
-            if (chooser.showOpenDialog(panel) == JFileChooser.APPROVE_OPTION) {
-                val path = chooser.selectedFile.absolutePath
-                customPathField.text = path
-                save { customSoundPath = path }
+            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                customPath.text = chooser.selectedFile.absolutePath
+                applySettings()
             }
         }
 
+        // ── Custom row ─────────────────────────────────────────────────────
         val customRow = JBPanel<JBPanel<*>>(GridBagLayout()).apply {
-            val cg = GridBagConstraints().apply {
-                gridy = 0; anchor = GridBagConstraints.WEST; insets = Insets(0, 0, 0, 4)
-            }
-            cg.gridx = 0; cg.fill = GridBagConstraints.HORIZONTAL; cg.weightx = 1.0
-            add(customPathField, cg)
-            cg.gridx = 1; cg.fill = GridBagConstraints.NONE; cg.weightx = 0.0
-            add(browseBtn, cg)
+            val cg = GridBagConstraints().apply { gridy = 0; insets = Insets(0, 0, 0, 4) }
+            cg.gridx = 0; cg.fill = GridBagConstraints.HORIZONTAL; cg.weightx = 1.0; add(customPath, cg)
+            cg.gridx = 1; cg.fill = GridBagConstraints.NONE; cg.weightx = 0.0; add(browseBtn, cg)
         }
 
-        fun updateCustomRowVisibility(name: String) {
-            customRow.isVisible = name == "custom"
-            panel.revalidate(); panel.repaint()
+        fun updateCustomRow() {
+            customRow.isVisible = (soundCombo.selectedItem as String) == "custom"
         }
-        updateCustomRowVisibility(state.soundName)
+        updateCustomRow()
+        soundCombo.addActionListener { updateCustomRow() }
 
-        soundCombo.addActionListener {
-            val selected = soundCombo.selectedItem as String
-            save { soundName = selected }
-            updateCustomRowVisibility(selected)
+        // ── Layout ─────────────────────────────────────────────────────────
+        val panel = JBPanel<JBPanel<*>>(GridBagLayout())
+        val gc = GridBagConstraints().apply {
+            anchor = GridBagConstraints.NORTHWEST
+            fill = GridBagConstraints.HORIZONTAL
+            gridx = 0; gridy = 0; weightx = 1.0
         }
 
-        gc.gridy++; gc.insets = Insets(2, 10, 2, 10)
-        panel.add(customRow, gc)
+        fun row(inTop: Int = 2, inSide: Int = 10) = gc.also {
+            gc.gridy++; gc.insets = Insets(inTop, inSide, 2, inSide)
+        }
 
-        // ── Separator ──────────────────────────────────────────────────────
-        gc.gridy++; gc.insets = Insets(8, 10, 4, 10)
-        panel.add(JSeparator(), gc)
-
-        // ── Buttons ────────────────────────────────────────────────────────
-        gc.gridy++; gc.insets = Insets(4, 10, 2, 10)
-        val testSoundBtn = JButton("🎺 Test Sound")
-        testSoundBtn.addActionListener {
-            val s = FaaaahSettings.getInstance().state
-            if (s.soundName == "custom") {
-                try {
-                    SoundPlayer.playFromFile(s.customSoundPath)
-                } catch (e: IllegalArgumentException) {
-                    JOptionPane.showMessageDialog(panel, e.message, "Cannot Play Sound", JOptionPane.ERROR_MESSAGE)
+        gc.insets = Insets(10, 10, 4, 10)
+        panel.add(JBLabel("🎺 FAAAAH on Fail").apply { font = font.deriveFont(Font.BOLD, 14f) }, gc)
+        panel.add(enabledBox, row(6))
+        panel.add(JSeparator(), row(6))
+        panel.add(JBLabel("Triggers:").apply { font = font.deriveFont(Font.BOLD) }, row(4))
+        panel.add(testBox, row(2, 18))
+        panel.add(buildBox, row(2, 18))
+        panel.add(runBox, row(2, 18))
+        panel.add(JSeparator(), row(6))
+        panel.add(JBLabel("Sound:").apply { font = font.deriveFont(Font.BOLD) }, row(4))
+        panel.add(soundCombo, row())
+        panel.add(customRow, row())
+        panel.add(JSeparator(), row(8))
+        panel.add(JButton("🎺 Test Sound").apply {
+            addActionListener {
+                val s = FaaaahSettings.getInstance().state
+                if (s.soundName == "custom") {
+                    try {
+                        SoundPlayer.playFromFile(s.customSoundPath)
+                    } catch (e: IllegalArgumentException) {
+                        JOptionPane.showMessageDialog(null, e.message, "Cannot Play", JOptionPane.ERROR_MESSAGE)
+                    }
+                } else {
+                    SoundPlayer.play(FaaaahSound.fromName(s.soundName))
                 }
-            } else {
-                SoundPlayer.play(FaaaahSound.fromName(s.soundName))
             }
-        }
-        panel.add(testSoundBtn, gc)
+        }, row(4))
 
         gc.gridy++; gc.insets = Insets(2, 10, 10, 10); gc.weighty = 1.0
         gc.anchor = GridBagConstraints.NORTHWEST
-        val stopBtn = JButton("🔇 Stop Sound")
-        stopBtn.addActionListener { SoundPlayer.stop() }
-        panel.add(stopBtn, gc)
+        panel.add(JButton("🔇 Stop Sound").apply { addActionListener { SoundPlayer.stop() } }, gc)
 
         return panel
     }

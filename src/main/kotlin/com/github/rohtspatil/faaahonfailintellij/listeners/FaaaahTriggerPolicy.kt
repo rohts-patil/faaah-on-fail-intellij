@@ -19,7 +19,13 @@ object FaaaahTriggerPolicy {
                 profileName.contains("external") ||
                 profileClass.contains("gradle") ||
                 profileClass.contains("maven") ||
-                profileClass.contains("external")
+                profileClass.contains("external") ||
+                // Test runners are handled by FaaaahTestStatusListener; skip here to avoid
+                // the execution listener playing when onTestFailure is disabled.
+                profileClass.contains("junit") ||
+                profileClass.contains("testng") ||
+                profileClass.contains("kotest") ||
+                profileName.contains("test")
     }
 
     fun shouldPlayForExecution(
