@@ -48,10 +48,12 @@
     </extensions>
 
     <actions>
-        <!-- Stop sound action: accessible via Find Action (⌘⇧A → "Stop FAAAAH Sound") -->
+        <!-- Stop sound action: accessible via Find Action (⌘⇧A) and Tools menu -->
         <action id="com.github.rohtspatil.faaahonfailintellij.StopFaaaahSound"
                 class="com.github.rohtspatil.faaahonfailintellij.actions.StopFaaaahSoundAction"
                 text="🔇 Stop FAAAAH Sound"
-                description="Stop any currently playing FAAAAH sound"/>
+                description="Stop any currently playing FAAAAH sound">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>
