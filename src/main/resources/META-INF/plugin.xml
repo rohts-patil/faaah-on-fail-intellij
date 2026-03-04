@@ -19,10 +19,12 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- JUnit / test framework failure listener -->
-        <testStatusListener implementation="com.github.rohtspatil.faaahonfailintellij.listeners.FaaaahTestStatusListener"/>
+        <testStatusListener
+                implementation="com.github.rohtspatil.faaahonfailintellij.listeners.FaaaahTestStatusListener"/>
 
         <!-- Gradle / Maven external build failure listener (ExternalSystem framework) -->
-        <externalSystemTaskNotificationListener implementation="com.github.rohtspatil.faaahonfailintellij.listeners.FaaaahBuildListener"/>
+        <externalSystemTaskNotificationListener
+                implementation="com.github.rohtspatil.faaahonfailintellij.listeners.FaaaahBuildListener"/>
 
         <!--
             Startup activity that subscribes FaaaahExecutionListener to the PROJECT-level message bus.
@@ -35,10 +37,21 @@
         <!-- Persistent settings service -->
         <applicationService serviceImplementation="com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettings"/>
 
+        <!-- Notification group for the Stop balloon shown during custom sound playback -->
+        <notificationGroup id="FAAAAH on Fail" displayType="BALLOON" isLogByDefault="false"/>
+
         <!-- Settings UI under Settings → Tools → FAAAAH on Fail -->
         <applicationConfigurable
-            instance="com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettingsConfigurable"
-            displayName="FAAAAH on Fail"
-            parentId="tools"/>
+                instance="com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettingsConfigurable"
+                displayName="FAAAAH on Fail"
+                parentId="tools"/>
     </extensions>
+
+    <actions>
+        <!-- Stop sound action: accessible via Find Action (⌘⇧A → "Stop FAAAAH Sound") -->
+        <action id="com.github.rohtspatil.faaahonfailintellij.StopFaaaahSound"
+                class="com.github.rohtspatil.faaahonfailintellij.actions.StopFaaaahSoundAction"
+                text="🔇 Stop FAAAAH Sound"
+                description="Stop any currently playing FAAAAH sound"/>
+    </actions>
 </idea-plugin>

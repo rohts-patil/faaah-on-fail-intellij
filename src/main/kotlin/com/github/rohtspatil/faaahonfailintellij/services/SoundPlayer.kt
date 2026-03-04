@@ -3,9 +3,12 @@ package com.github.rohtspatil.faaahonfailintellij.services
 import com.github.rohtspatil.faaahonfailintellij.settings.FaaaahSettings
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import java.io.File
-import javax.sound.sampled.AudioFormat
-import javax.sound.sampled.AudioSystem
+import java.util.concurrent.atomic.AtomicReference
+import javax.sound.sampled.*
 
 enum class FaaaahSound(val resource: String) {
     FAAAAH("/sounds/faaaah.wav"),
@@ -18,10 +21,10 @@ enum class FaaaahSound(val resource: String) {
 
         fun fromName(name: String): FaaaahSound = when (name) {
             "fatality" -> FATALITY
-            "joker"    -> JOKER
-            "random"   -> random()
-            "custom"   -> CUSTOM
-            else       -> FAAAAH
+            "joker" -> JOKER
+            "random" -> random()
+            "custom" -> CUSTOM
+            else -> FAAAAH
         }
     }
 }
@@ -30,19 +33,26 @@ object SoundPlayer {
 
     private val log = thisLogger()
 
+    private val activeClip = AtomicReference<Clip?>(null)
+    private val activeLine = AtomicReference<SourceDataLine?>(null)
+    private val activeThread = AtomicReference<Thread?>(null)
+
+    /** Stop any currently playing sound. */
+    fun stop() {
+        activeThread.getAndSet(null)?.interrupt()
+        activeClip.getAndSet(null)?.runCatching { stop(); close() }
+        activeLine.getAndSet(null)?.runCatching { stop(); flush(); close() }
+    }
+
     /** Play a bundled resource sound (WAV). */
     fun play(sound: FaaaahSound = FaaaahSound.FAAAAH) {
-        ApplicationManager.getApplication().executeOnPooledThread {
+        stop()
+        launchThread {
             try {
                 val stream = SoundPlayer::class.java.getResourceAsStream(sound.resource)
-                    ?: run {
-                        log.warn("Could not find sound resource: ${sound.resource}")
-                        return@executeOnPooledThread
-                    }
-                stream.use { rawStream ->
-                    AudioSystem.getAudioInputStream(rawStream.buffered()).use { audioStream ->
-                        playClip(audioStream)
-                    }
+                    ?: run { log.warn("Sound resource not found: ${sound.resource}"); return@launchThread }
+                stream.use { raw ->
+                    AudioSystem.getAudioInputStream(raw.buffered()).use { playClip(it) }
                 }
             } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
@@ -53,12 +63,12 @@ object SoundPlayer {
     }
 
     /**
-     * Play a sound from an absolute file path on the local filesystem.
-     * WAV files are played via AudioSystem directly.
-     * MP3 files are decoded via MpegAudioFileReader (mp3spi) without relying on
-     * the Java SPI lookup, which is blocked by IntelliJ's plugin classloader.
+     * Play a sound from an absolute file path.
+     * WAV: AudioSystem directly. MP3: MpegAudioFileReader (bypasses IntelliJ's SPI block).
      *
-     * @throws IllegalArgumentException if the file is missing or blank.
+     * Shows a cancellable background task in the IDE progress strip — clicking ✕ stops playback.
+     *
+     * @throws IllegalArgumentException if file is missing or blank.
      */
     @Throws(IllegalArgumentException::class)
     fun playFromFile(filePath: String) {
@@ -69,82 +79,104 @@ object SoundPlayer {
         if (!file.exists() || !file.isFile) {
             throw IllegalArgumentException("File not found: $filePath")
         }
-        ApplicationManager.getApplication().executeOnPooledThread {
+        stop()
+
+        launchThread {
             try {
-                if (filePath.lowercase().endsWith(".mp3")) {
-                    playMp3(file)
-                } else {
-                    AudioSystem.getAudioInputStream(file).use { audioStream ->
-                        playClip(audioStream)
-                    }
-                }
+                if (filePath.lowercase().endsWith(".mp3")) playMp3(file)
+                else AudioSystem.getAudioInputStream(file).use { playClip(it) }
             } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
             } catch (e: Exception) {
                 log.warn("Failed to play '$filePath': ${e.message}")
             }
         }
+
+        // Show "🎺 FAAAAH is playing… [✕]" in the IDE background-tasks strip.
+        // Clicking ✕ sets isCanceled = true → we call stop().
+        ApplicationManager.getApplication().executeOnPooledThread {
+            ProgressManager.getInstance().run(
+                object : Task.Backgroundable(null, "🎺 FAAAAH is playing…", /* canBeCancelled= */ true) {
+                    override fun run(indicator: ProgressIndicator) {
+                        indicator.isIndeterminate = true
+                        while (activeThread.get()?.isAlive == true) {
+                            if (indicator.isCanceled) {
+                                stop()
+                                return
+                            }
+                            Thread.sleep(100)
+                        }
+                    }
+                }
+            )
+        }
     }
 
-    /**
-     * Decode and stream an MP3 file directly using MpegAudioFileReader,
-     * bypassing the SPI registry that IntelliJ's classloader blocks.
-     * Uses SourceDataLine for streaming (Clip requires a known frame count).
-     */
-    private fun playMp3(file: File) {
-        // Directly instantiate the mp3spi reader — no SPI lookup needed
-        val mp3Stream = javazoom.spi.mpeg.sampled.file.MpegAudioFileReader()
-            .getAudioInputStream(file)
+    // ── private helpers ───────────────────────────────────────────────────────
 
+    private fun launchThread(block: () -> Unit) {
+        val thread = Thread {
+            try {
+                block()
+            } finally {
+                activeThread.compareAndSet(Thread.currentThread(), null)
+            }
+        }
+        thread.isDaemon = true
+        activeThread.set(thread) // set BEFORE start to avoid race with stop()
+        thread.start()
+    }
+
+    /** Decode MP3 via MpegAudioFileReader directly (bypasses IntelliJ's classloader SPI block). */
+    private fun playMp3(file: File) {
+        val mp3Stream = javazoom.spi.mpeg.sampled.file.MpegAudioFileReader().getAudioInputStream(file)
         val baseFormat = mp3Stream.format
-        // Decode from MP3 to PCM_SIGNED (16-bit) for playback
         val pcmFormat = AudioFormat(
-            AudioFormat.Encoding.PCM_SIGNED,
-            baseFormat.sampleRate,
-            16,
-            baseFormat.channels,
-            baseFormat.channels * 2,
-            baseFormat.sampleRate,
-            false
+            AudioFormat.Encoding.PCM_SIGNED, baseFormat.sampleRate, 16,
+            baseFormat.channels, baseFormat.channels * 2, baseFormat.sampleRate, false
         )
         val pcmStream = javazoom.spi.mpeg.sampled.convert.MpegFormatConversionProvider()
             .getAudioInputStream(pcmFormat, mp3Stream)
 
-        // Stream via SourceDataLine — frame count from decoded MP3 is unknown (-1),
-        // so Clip.open() would fail; SourceDataLine handles streaming correctly.
         val line = AudioSystem.getSourceDataLine(pcmFormat)
         line.open(pcmFormat, 8192)
         line.start()
+        activeLine.set(line)
         try {
             val buffer = ByteArray(8192)
-            var bytesRead: Int
             pcmStream.use { stream ->
-                while (stream.read(buffer).also { bytesRead = it } != -1) {
-                    line.write(buffer, 0, bytesRead)
+                var n = stream.read(buffer)
+                while (n != -1 && !Thread.currentThread().isInterrupted) {
+                    line.write(buffer, 0, n)
+                    n = stream.read(buffer)
                 }
             }
-            line.drain() // wait for the buffer to finish playing
+            if (!Thread.currentThread().isInterrupted) line.drain()
         } finally {
-            line.close()
+            activeLine.compareAndSet(line, null)
+            line.runCatching { stop(); flush(); close() }
         }
     }
 
-    /** Play an AudioInputStream via Clip (suitable for WAV with known frame count). */
-    private fun playClip(audioStream: javax.sound.sampled.AudioInputStream) {
+    /** Play a WAV via Clip, polling for interruption every 50 ms. */
+    private fun playClip(audioStream: AudioInputStream) {
         val clip = AudioSystem.getClip()
+        clip.open(audioStream)
+        activeClip.set(clip)
         try {
-            clip.open(audioStream)
             clip.start()
-            Thread.sleep(clip.microsecondLength / 1000 + 200)
+            val durationMs = clip.microsecondLength / 1000 + 200
+            var elapsed = 0L
+            while (elapsed < durationMs && !Thread.currentThread().isInterrupted) {
+                Thread.sleep(50)
+                elapsed += 50
+            }
         } finally {
-            clip.close()
+            activeClip.compareAndSet(clip, null)
+            clip.runCatching { stop(); close() }
         }
     }
 
-    /**
-     * Central dispatch: reads soundName + customSoundPath from settings and
-     * plays the correct sound. Errors from custom file playback are logged.
-     */
     fun playBySettings(state: FaaaahSettings.State) {
         if (state.soundName == "custom") {
             try {
